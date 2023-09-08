@@ -17,8 +17,6 @@ async def settings_handler(message: Message, state: FSMContext):
 
     account = await AccountController().me(token)
 
-    print(account)
-
     await message.answer(user_format(account))
 
 #
