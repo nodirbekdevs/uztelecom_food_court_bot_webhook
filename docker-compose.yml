@@ -4,8 +4,6 @@ services:
   redis:
     image: redis:alpine
     container_name: utcfcb_redis
-    ports:
-      - "6380:6379"
   bot:
     build:
       context: .
