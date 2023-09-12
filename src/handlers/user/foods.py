@@ -107,8 +107,8 @@ async def request_exception_moment_handler(query: CallbackQuery, state: FSMConte
     await FoodStates.exception.set()
 
     message_text = translator(
-        f"Istisno holatlar bormi. Malasan:  pishloq solmastan solmastan qilish kerak",
-        f"Есть ли исключения. Например: нужно делать без сырной начинки",
+        f"Istisno holatlar borm ? Malasan: pishloq solmastan solmastan tayyorlash kerak",
+        f"Есть ли исключения ? Маласан: следует готовить без сырной начинки.",
         language
     )
 

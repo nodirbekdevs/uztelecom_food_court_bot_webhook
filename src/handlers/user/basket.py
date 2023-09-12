@@ -136,7 +136,7 @@ async def formation_order_handler(query: CallbackQuery, state: FSMContext):
 
     if current_date.weekday()+1 == 6:
         error_text = translator(
-            "Siz shanba kunga buyurtma bera olmaysiz, Ertaga buyurtma bersangiz dushanba kuni uchun buyurtmangizni ola olasiz.",
+            "Siz shanba kuniga buyurtma bera olmaysiz, Ertaga buyurtma bersangiz dushanba kuni uchun buyurtmangizni ola olasiz.",
             "Вы не можете сделать заказ на субботу, если сделаете заказ завтра, то сможете получить заказ на понедельник.",
             language
         )

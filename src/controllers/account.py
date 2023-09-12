@@ -14,9 +14,6 @@ class AccountController:
     async def send_verification_code(self, data: dict) -> Optional[dict]:
         async with ClientSession() as session:
             async with session.post(f'{self.url}/send_verification_code/', json=data) as response:
-                print(response.status)
-                print(response.content)
-
                 if response.status != 200:
                     return None
 

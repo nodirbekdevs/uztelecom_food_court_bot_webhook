@@ -53,8 +53,8 @@ async def active_orders_handler(query: CallbackQuery, state: FSMContext):
 
     if not orders:
         error_message = translator("Hali buyurtma bermagansiz", "Вы еще не сделали заказ", language)
-        await query.answer()
-        await query.message.answer(error_message)
+        await query.answer(error_message, show_alert=True)
+        # await query.message.answer(error_message)
         return
 
     await OrderStates.active_orders.set()
@@ -176,12 +176,13 @@ async def received_orders_handler(query: CallbackQuery, state: FSMContext):
     paginated = await Pagination('ORDER').paginate(1, 6, token, language)
 
     if not paginated['status']:
-        await query.message.answer(paginated['message'])
+        await query.answer(paginated['message'], show_alert=True)
         return
 
     await OrderStates.delivered_orders.set()
 
     await query.message.delete()
+
     # todo check edit text
     await query.message.answer(paginated['message'], reply_markup=paginated['keyboard'])
 

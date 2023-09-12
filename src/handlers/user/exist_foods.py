@@ -58,7 +58,7 @@ async def single_food_handler(query: CallbackQuery, state: FSMContext):
     food = await FoodController().get_one_from_stock(int(query.data.split('_')[1]))
 
     if not food:
-        error_message = translator("Siz shartnoma tuzmagansiz", "Вы не заключили договор", language)
+        error_message = translator("Birozdan so'ng urinib ko'ring", "Попробуйте позже", language)
         await query.message.answer(error_message)
         return
 
