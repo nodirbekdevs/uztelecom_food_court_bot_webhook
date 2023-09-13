@@ -17,7 +17,6 @@ async def send_exist_foods(message, exist_foods, language):
     await message.answer(
         text=exist_foods_format(exist_foods), reply_markup=exist_foods_keyboard(exist_foods, language)
     )
-    return
 
 
 async def send_exist_food(message, exist_food, language, exist_food_count=0):
@@ -34,12 +33,11 @@ async def send_exist_food(message, exist_food, language, exist_food_count=0):
             )
             await message.answer(error_text)
 
-    if exist_food.get('image'):
-        await message.answer_photo(photo=exist_food['image'], caption=message_text, reply_markup=keyboard)
+    if exist_food.get('food')['image']:
+        await message.answer_photo(photo=exist_food['food']['image'], caption=message_text, reply_markup=keyboard)
         return
 
     await message.answer(text=message_text, reply_markup=keyboard)
-    return
 
 
 async def does_not_exist_food(message, language):
@@ -49,4 +47,3 @@ async def does_not_exist_food(message, language):
 
     await UserStates.process.set()
     await message.answer(error_message, reply_markup=menu_keyboard(language))
-    return

@@ -162,62 +162,21 @@ async def show_food_handler(query: CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query_handler(lambda query: query.data.startswith('buy_'), state=ExistFoodStates.single)
-async def show_food_handler(query: CallbackQuery, state: FSMContext):
+async def request_exception_food_handler(query: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
         language = data.get(f'{query.from_user.id}_user_language')
+        token = get_access_token(data.get(f'{query.from_user.id}_token'))
 
     control = query.data.split('_')
 
     exist_food_id, exist_food_count = int(control[1]), int(control[2])
-
-    async with state.proxy() as data:
-        data[f"{query.from_user.id}_exist_food_id_for_order"] = exist_food_id
-        data[f"{query.from_user.id}_exist_food_count_for_order"] = exist_food_count
-        data[f"{query.from_user.id}_delete_message"] = query.message.message_id
-
-    message_text = translator(
-        f"Istisno holatlar bormi. Malasan:  pishloq solmastan solmastan qilish kerak",
-        f"Есть ли исключения. Например: нужно делать без сырной начинки",
-        language
-    )
-
-    await ExistFoodStates.buy.set()
+    print(exist_food_id)
+    print(type(exist_food_id))
+    print(exist_food_count)
+    item_data = dict(payment_type='salary', food=exist_food_id, count=exist_food_count)
+    print(item_data)
     await query.message.delete()
-    await query.message.answer(message_text, reply_markup=exception_keyboard(language))
-
-
-@dp.message_handler(state=ExistFoodStates.buy)
-async def order_item_creation_handler(message: Message, state: FSMContext):
-    async with state.proxy() as data:
-        language = data.get(f'{message.from_user.id}_user_language')
-        exist_food_id = data.get(f"{message.from_user.id}_exist_food_id_for_order")
-        exist_food_count = data.get(f"{message.from_user.id}_exist_food_count_for_order")
-        token = get_access_token(data.get(f'{message.from_user.id}_token'))
-
-    if is_num(message.text):
-        error_text = translator("Raqam jo'natmang!", "Не отправляйте номер!", language)
-        await message.answer(error_text)
-        return
-
-    # await dp.bot.delete_message(chat_id=message.chat.id, message_id=message_id)
-
-    # todo get one exist food request
-    exist_food = await FoodController().get_one_from_stock(exist_food_id)
-
-    # todo get foods in stock request
-    exist_foods = await FoodController().in_stock()
-
-    if message.text in [option['back']['uz'], option['back']['ru']]:
-        if not exist_food:
-            await send_exist_foods(message, exist_foods, language)
-
-        await send_exist_food(message, exist_food, language)
-
-    item_data = dict(payment_type='salary', food=exist_food_id, count=exist_food_count, comment=message.text)
-
-    if message.text in [option['exception']['uz'], option['exception']['ru']]:
-        del item_data['comment']
-
+    print(token)
     # todo order exist food request
     ordering = await BillingController(token).create_order_food_in_stock(item_data)
 
@@ -228,26 +187,195 @@ async def order_item_creation_handler(message: Message, state: FSMContext):
     exist_foods = await FoodController().in_stock()
 
     if ordering is None:
+        error_text = translator(
+            "Buyurtmangiz qabul qiinmadi, birozdan so'ng urinib ko'ring.",
+            "Ваш заказ не принят, повторите попытку позже.",
+            language
+        )
+        await query.message.answer(error_text)
+
         if not exist_food and not exist_foods:
-            await does_not_exist_food(message, language)
+            await does_not_exist_food(query.message, language)
+            return
         if not exist_food and exist_foods:
-            await send_exist_foods(message, exist_foods, language)
+            await send_exist_foods(query.message, exist_foods, language)
+            return
         elif exist_food:
-            await send_exist_food(message, exist_food, language, exist_food_count)
+            await send_exist_food(query.message, exist_food, language, exist_food_count)
+            return
 
     message_text = translator("Buyurtmangiz qabul qilindi", "Ваш заказ принят", language)
 
-    await message.answer(message_text, reply_markup=ReplyKeyboardRemove())
+    await query.message.answer(message_text, reply_markup=ReplyKeyboardRemove())
 
-    await ExistFoodStates.process.set()
+    if exist_food:
+        await send_exist_food(query.message, exist_food, language)
+        return
+    elif not exist_food and exist_foods:
+        await send_exist_foods(query.message, exist_foods, language)
+        return
 
-    if not exist_foods:
-        await does_not_exist_food(message, language)
+    await does_not_exist_food(query.message, language)
 
-    async with state.proxy() as data:
-        del data[f"{message.from_user.id}_exist_food_id_for_order"]
-        del data[f"{message.from_user.id}_exist_food_count_for_order"]
+    # await query.message.answer(
+    #     text=exist_foods_format(exist_foods), reply_markup=exist_foods_keyboard(exist_foods, language)
+    # )
 
-    await message.answer(
-        text=exist_foods_format(exist_foods), reply_markup=exist_foods_keyboard(exist_foods, language)
-    )
+
+# @dp.message_handler(state=ExistFoodStates.buy)
+# async def order_item_creation_handler(message: Message, state: FSMContext):
+#     async with state.proxy() as data:
+#         language = data.get(f'{message.from_user.id}_user_language')
+#         exist_food_id = data.get(f"{message.from_user.id}_exist_food_id_for_order")
+#         exist_food_count = data.get(f"{message.from_user.id}_exist_food_count_for_order")
+#         token = get_access_token(data.get(f'{message.from_user.id}_token'))
+#
+#     if is_num(message.text):
+#         error_text = translator("Raqam jo'natmang!", "Не отправляйте номер!", language)
+#         await message.answer(error_text)
+#         return
+#
+#     # await dp.bot.delete_message(chat_id=message.chat.id, message_id=message_id)
+#
+#     # todo get one exist food request
+#     exist_food = await FoodController().get_one_from_stock(exist_food_id)
+#
+#     # todo get foods in stock request
+#     exist_foods = await FoodController().in_stock()
+#
+#     if message.text in [option['back']['uz'], option['back']['ru']]:
+#         if not exist_food:
+#             await send_exist_foods(message, exist_foods, language)
+#
+#         await send_exist_food(message, exist_food, language)
+#
+#     item_data = dict(payment_type='salary', food=exist_food_id, count=exist_food_count, comment=message.text)
+#
+#     if message.text in [option['exception']['uz'], option['exception']['ru']]:
+#         del item_data['comment']
+#
+#     # todo order exist food request
+#     ordering = await BillingController(token).create_order_food_in_stock(item_data)
+#
+#     # todo get one exist food request
+#     exist_food = await FoodController().get_one_from_stock(exist_food_id)
+#
+#     # todo get foods in stock request
+#     exist_foods = await FoodController().in_stock()
+#
+#     if ordering is None:
+#         if not exist_food and not exist_foods:
+#             await does_not_exist_food(message, language)
+#         if not exist_food and exist_foods:
+#             await send_exist_foods(message, exist_foods, language)
+#         elif exist_food:
+#             await send_exist_food(message, exist_food, language, exist_food_count)
+#
+#     message_text = translator("Buyurtmangiz qabul qilindi", "Ваш заказ принят", language)
+#
+#     await message.answer(message_text, reply_markup=ReplyKeyboardRemove())
+#
+#     await ExistFoodStates.process.set()
+#
+#     if not exist_foods:
+#         await does_not_exist_food(message, language)
+#
+#     async with state.proxy() as data:
+#         del data[f"{message.from_user.id}_exist_food_id_for_order"]
+#         del data[f"{message.from_user.id}_exist_food_count_for_order"]
+#
+#     await message.answer(
+#         text=exist_foods_format(exist_foods), reply_markup=exist_foods_keyboard(exist_foods, language)
+#     )
+
+
+# @dp.callback_query_handler(lambda query: query.data.startswith('buy_'), state=ExistFoodStates.single)
+# async def request_exception_food_handler(query: CallbackQuery, state: FSMContext):
+#     async with state.proxy() as data:
+#         language = data.get(f'{query.from_user.id}_user_language')
+#
+#     control = query.data.split('_')
+#
+#     exist_food_id, exist_food_count = int(control[1]), int(control[2])
+#
+#     async with state.proxy() as data:
+#         data[f"{query.from_user.id}_exist_food_id_for_order"] = exist_food_id
+#         data[f"{query.from_user.id}_exist_food_count_for_order"] = exist_food_count
+#         data[f"{query.from_user.id}_delete_message"] = query.message.message_id
+#
+#     message_text = translator(
+#         f"Istisno holatlar bormi. Malasan:  pishloq solmastan solmastan qilish kerak",
+#         f"Есть ли исключения. Например: нужно делать без сырной начинки",
+#         language
+#     )
+#
+#     await ExistFoodStates.buy.set()
+#     await query.message.delete()
+#     await query.message.answer(message_text, reply_markup=exception_keyboard(language))
+#
+#
+# @dp.message_handler(state=ExistFoodStates.buy)
+# async def order_item_creation_handler(message: Message, state: FSMContext):
+#     async with state.proxy() as data:
+#         language = data.get(f'{message.from_user.id}_user_language')
+#         exist_food_id = data.get(f"{message.from_user.id}_exist_food_id_for_order")
+#         exist_food_count = data.get(f"{message.from_user.id}_exist_food_count_for_order")
+#         token = get_access_token(data.get(f'{message.from_user.id}_token'))
+#
+#     if is_num(message.text):
+#         error_text = translator("Raqam jo'natmang!", "Не отправляйте номер!", language)
+#         await message.answer(error_text)
+#         return
+#
+#     # await dp.bot.delete_message(chat_id=message.chat.id, message_id=message_id)
+#
+#     # todo get one exist food request
+#     exist_food = await FoodController().get_one_from_stock(exist_food_id)
+#
+#     # todo get foods in stock request
+#     exist_foods = await FoodController().in_stock()
+#
+#     if message.text in [option['back']['uz'], option['back']['ru']]:
+#         if not exist_food:
+#             await send_exist_foods(message, exist_foods, language)
+#
+#         await send_exist_food(message, exist_food, language)
+#
+#     item_data = dict(payment_type='salary', food=exist_food_id, count=exist_food_count, comment=message.text)
+#
+#     if message.text in [option['exception']['uz'], option['exception']['ru']]:
+#         del item_data['comment']
+#
+#     # todo order exist food request
+#     ordering = await BillingController(token).create_order_food_in_stock(item_data)
+#
+#     # todo get one exist food request
+#     exist_food = await FoodController().get_one_from_stock(exist_food_id)
+#
+#     # todo get foods in stock request
+#     exist_foods = await FoodController().in_stock()
+#
+#     if ordering is None:
+#         if not exist_food and not exist_foods:
+#             await does_not_exist_food(message, language)
+#         if not exist_food and exist_foods:
+#             await send_exist_foods(message, exist_foods, language)
+#         elif exist_food:
+#             await send_exist_food(message, exist_food, language, exist_food_count)
+#
+#     message_text = translator("Buyurtmangiz qabul qilindi", "Ваш заказ принят", language)
+#
+#     await message.answer(message_text, reply_markup=ReplyKeyboardRemove())
+#
+#     await ExistFoodStates.process.set()
+#
+#     if not exist_foods:
+#         await does_not_exist_food(message, language)
+#
+#     async with state.proxy() as data:
+#         del data[f"{message.from_user.id}_exist_food_id_for_order"]
+#         del data[f"{message.from_user.id}_exist_food_count_for_order"]
+#
+#     await message.answer(
+#         text=exist_foods_format(exist_foods), reply_markup=exist_foods_keyboard(exist_foods, language)
+#     )

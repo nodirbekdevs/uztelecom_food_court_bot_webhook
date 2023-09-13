@@ -81,8 +81,14 @@ class BillingController:
                 return True
 
     async def create_order_food_in_stock(self, data: dict):
+        print(self.headers)
         async with ClientSession(headers=self.headers) as session:
             async with session.post(url=f"{self.url}/order/food_in_stock/", json=data) as response:
+                print(response)
+                print(response.status)
+                print(response.content)
+                print(await response.text())
+
                 if response.status > 300:
                     return None
 

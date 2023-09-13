@@ -100,62 +100,14 @@ async def back_from_single_food_handler(query: CallbackQuery, state: FSMContext)
 @dp.callback_query_handler(lambda query: query.data.startswith('tobsk_'), state=FoodStates.single)
 async def request_exception_moment_handler(query: CallbackQuery, state: FSMContext):
     async with state.proxy() as data:
+        token = get_access_token(data.get(f'{query.from_user.id}_token'))
         language = data.get(f'{query.from_user.id}_user_language')
 
-    await query.message.delete()
+    food_id = int(query.data.split('_')[1])
 
-    await FoodStates.exception.set()
-
-    message_text = translator(
-        f"Istisno holatlar borm ? Malasan: pishloq solmastan solmastan tayyorlash kerak",
-        f"Есть ли исключения ? Маласан: следует готовить без сырной начинки.",
-        language
-    )
-
-    await query.message.answer(message_text, reply_markup=exception_keyboard(language))
-
-    async with state.proxy() as data:
-        data[f'{query.from_user.id}_order_food_id'] = int(query.data.split('_')[1])
-
-
-@dp.message_handler(state=FoodStates.exception)
-async def order_item_creation_handler(message: Message, state: FSMContext):
-    async with state.proxy() as data:
-        language = data.get(f'{message.from_user.id}_user_language')
-        food_id = data.get(f'{message.from_user.id}_order_food_id')
-        token = get_access_token(data.get(f'{message.from_user.id}_token'))
-
-    if is_num(message.text):
-        error_text = translator("Raqam jo'natmang!", "Не отправляйте номер!", language)
-        await message.answer(error_text)
-        return
-
-    await FoodStates.single.set()
+    item_data = dict(food=food_id, count=1)
 
     food = await FoodController().get_one_food(food_id)
-
-    if message.text in [option['back']['uz'], option['back']['ru']]:
-        message_text = translator(f"Mahsulot - {food['title']}", f"Продукт — {food['title']}", language)
-        await message.answer(message_text, reply_markup=ReplyKeyboardRemove())
-
-        if food.get('image'):
-            await message.answer_photo(
-                photo=food['image'],
-                caption=single_food_format(food, language),
-                reply_markup=food_keyboard(food_id, language)
-            )
-            return
-
-        await message.answer(
-            single_food_format(food, language),
-            reply_markup=food_keyboard(food_id, language)
-        )
-        return
-
-    item_data = dict(food=food_id, count=1, comment=message.text)
-
-    if message.text in [option['exception']['uz'], option['exception']['ru']]:
-        del item_data['comment']
 
     controller = BillingController(token)
 
@@ -175,15 +127,105 @@ async def order_item_creation_handler(message: Message, state: FSMContext):
                 keyboard = single_food_keyboard(item, language)
 
     message_text = translator("Mahsulot savatingizga qo'shildi", "Товар добавлен в корзин", language)
-    await message.answer(message_text, reply_markup=ReplyKeyboardRemove())
+    await query.message.answer(message_text)
 
-    await dp.bot.send_chat_action(message.chat.id, ChatActions.TYPING)
+    await dp.bot.send_chat_action(query.message.chat.id, ChatActions.TYPING)
 
     if order_item['food']['image']:
-        await message.answer_photo(order_item['food']['image'], caption=message_text, reply_markup=keyboard)
+        await query.message.delete()
+        await query.message.answer_photo(order_item['food']['image'], caption=message_text, reply_markup=keyboard)
         return
 
-    await message.answer(text=message_text, reply_markup=keyboard)
+    await query.message.edit_text(text=message_text, reply_markup=keyboard)
+
+
+# @dp.callback_query_handler(lambda query: query.data.startswith('tobsk_'), state=FoodStates.single)
+# async def request_exception_moment_handler(query: CallbackQuery, state: FSMContext):
+#     async with state.proxy() as data:
+#         language = data.get(f'{query.from_user.id}_user_language')
+#
+#     await query.message.delete()
+#
+#     await FoodStates.exception.set()
+#
+#     message_text = translator(
+#         f"Istisno holatlar borm ? Malasan: pishloq solmastan solmastan tayyorlash kerak",
+#         f"Есть ли исключения ? Маласан: следует готовить без сырной начинки.",
+#         language
+#     )
+#
+#     await query.message.answer(message_text, reply_markup=exception_keyboard(language))
+#
+#     async with state.proxy() as data:
+#         data[f'{query.from_user.id}_order_food_id'] = int(query.data.split('_')[1])
+
+
+# @dp.message_handler(state=FoodStates.exception)
+# async def order_item_creation_handler(message: Message, state: FSMContext):
+#     async with state.proxy() as data:
+#         language = data.get(f'{message.from_user.id}_user_language')
+#         food_id = data.get(f'{message.from_user.id}_order_food_id')
+#         token = get_access_token(data.get(f'{message.from_user.id}_token'))
+#
+#     if is_num(message.text):
+#         error_text = translator("Raqam jo'natmang!", "Не отправляйте номер!", language)
+#         await message.answer(error_text)
+#         return
+#
+#     await FoodStates.single.set()
+#
+#     food = await FoodController().get_one_food(food_id)
+#
+#     if message.text in [option['back']['uz'], option['back']['ru']]:
+#         message_text = translator(f"Mahsulot - {food['title']}", f"Продукт — {food['title']}", language)
+#         await message.answer(message_text, reply_markup=ReplyKeyboardRemove())
+#
+#         if food.get('image'):
+#             await message.answer_photo(
+#                 photo=food['image'],
+#                 caption=single_food_format(food, language),
+#                 reply_markup=food_keyboard(food_id, language)
+#             )
+#             return
+#
+#         await message.answer(
+#             single_food_format(food, language),
+#             reply_markup=food_keyboard(food_id, language)
+#         )
+#         return
+#
+#     item_data = dict(food=food_id, count=1, comment=message.text)
+#
+#     if message.text in [option['exception']['uz'], option['exception']['ru']]:
+#         del item_data['comment']
+#
+#     controller = BillingController(token)
+#
+#     # todo create order item request
+#     await controller.create_order_item(item_data)
+#
+#     basket = await controller.cart()
+#
+#     message_text, keyboard = single_food_format(food, language), []
+#
+#     order_item = dict()
+#
+#     if basket:
+#         for item in basket:
+#             if item['food']['id'] == food['id']:
+#                 order_item = item
+#                 keyboard = single_food_keyboard(item, language)
+#
+#     message_text = translator("Mahsulot savatingizga qo'shildi", "Товар добавлен в корзин", language)
+#     await message.answer(message_text, reply_markup=ReplyKeyboardRemove())
+#
+#     await dp.bot.send_chat_action(message.chat.id, ChatActions.TYPING)
+#
+#     if order_item['food']['image']:
+#         await message.answer_photo(order_item['food']['image'], caption=message_text, reply_markup=keyboard)
+#         return
+#
+#     await message.answer(text=message_text, reply_markup=keyboard)
 
 
 @dp.callback_query_handler(

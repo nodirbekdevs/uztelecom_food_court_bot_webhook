@@ -23,8 +23,6 @@ def qrcode_generator(data):
 
     qr_image = qr.make_image(image_factory=StyledPilImage, module_drawer=RoundedModuleDrawer())
 
-    # qr_image = make(data)
-
     qr_image_bytes = BytesIO()
     qr_image.save(qr_image_bytes)
     qr_image_bytes.seek(0)
