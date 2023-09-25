@@ -69,7 +69,7 @@ def exist_foods_keyboard(foods, language, limit=3):
 
 def single_exist_food_keyboard(exist_food, language, count=1):
     lang = language_definer(language)
-    print(exist_food)
+
     buy, query = translator("Sotib olish", "Покупка", language), f"{exist_food['food']['id']}_{count}"
 
     buttons = [

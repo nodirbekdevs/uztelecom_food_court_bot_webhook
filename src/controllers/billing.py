@@ -69,7 +69,6 @@ class BillingController:
     async def order_formation(self, data: dict):
         async with ClientSession(headers=self.headers) as session:
             async with session.post(url=f'{self.url}/order/formation/', json=data) as response:
-
                 if response.status != 200:
                     return None
 
@@ -81,14 +80,8 @@ class BillingController:
                 return True
 
     async def create_order_food_in_stock(self, data: dict):
-        print(self.headers)
         async with ClientSession(headers=self.headers) as session:
             async with session.post(url=f"{self.url}/order/food_in_stock/", json=data) as response:
-                print(response)
-                print(response.status)
-                print(response.content)
-                print(await response.text())
-
                 if response.status > 300:
                     return None
 
@@ -107,7 +100,6 @@ class BillingController:
     async def create_order_item(self, data: dict):
         async with ClientSession(headers=self.headers) as session:
             async with session.post(url=f'{self.url}/order/item/', json=data) as response:
-
                 if response.status != 201:
                     return None
 
@@ -121,7 +113,6 @@ class BillingController:
     async def delete_order_item(self, item_id: int):
         async with ClientSession(headers=self.headers) as session:
             async with session.delete(url=f'{self.url}/order/item/{item_id}/') as response:
-
                 if response.status != 204:
                     return None
 
